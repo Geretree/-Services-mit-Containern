@@ -1,110 +1,45 @@
-# Docker Installation - Detaillierte Anleitung
+## Docker Desktop Anmeldung und Credential Management
 
-## Übersicht
+Nach der Installation von Docker Desktop können Sie sich anmelden und die Credential-Verwaltung konfigurieren.
 
-Diese Anleitung dokumentiert die vollständige Installation von Docker und Docker Desktop auf einem Ubuntu/Debian-System.
+### Anmeldung bei Docker Desktop
 
-## Schritt-für-Schritt Anleitung
+Sie können sich auf verschiedene Arten anmelden:
 
-### Schritt 1: System vorbereiten
+1. **Über die Docker Desktop GUI**
+   - Docker Desktop öffnen
+   - Auf "Sign in" klicken
+   - Mit Docker Hub Account anmelden
 
-Zuerst müssen alle alten Docker-Installationen entfernt werden, um Konflikte zu vermeiden.
+2. **Über die Kommandozeile**
+   ```bash
+   docker login
+   ```
 
-```bash
-# Alte Docker-Versionen deinstallieren
-sudo apt-get remove docker docker-engine docker.io containerd runc
-sudo apt remove docker-desktop
+### Credentials Management für Linux
 
-# Docker Desktop Dateien entfernen
-rm -r $HOME/.docker/desktop
-sudo rm /usr/local/bin/com.docker.cli
-sudo apt purge docker-desktop
-```
+Docker Desktop für Linux unterstützt verschiedene Credential Helpers zur sicheren Speicherung Ihrer Anmeldedaten.
 
-### Schritt 2: Abhängigkeiten installieren
+**Verfügbare Credential Helpers:**
+- `pass` - Standard Linux Password Manager
+- `secretservice` - GNOME Keyring oder KDE Wallet
+- Systemspezifische Keychains
 
-```bash
-# Zertifikate und Tools installieren
-sudo apt install -y ca-certificates curl gnupg lsb-release
-```
+**Konfiguration:**
 
-**Was wird installiert:**
-- `ca-certificates`: SSL/TLS Zertifikate für sichere Verbindungen
-- `curl`: Tool zum Herunterladen von Dateien
-- `gnupg`: Verschlüsselungs- und Signatur-Tool
-- `lsb-release`: Informationen über die Linux-Distribution
-
-### Schritt 3: Docker GPG Key hinzufügen
+Die Credential-Verwaltung wird in der Docker-Konfigurationsdatei eingerichtet:
 
 ```bash
-# Verzeichnis für Schlüssel erstellen
-sudo mkdir -p /etc/apt/keyrings
-
-# Docker's offiziellen GPG Key herunterladen
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+# Docker config bearbeiten
+nano ~/.docker/config.json
 ```
 
-### Schritt 4: Docker Repository konfigurieren
+Weitere Details finden Sie in der [offiziellen Docker Dokumentation](https://docs.docker.com/desktop/setup/sign-in/#credentials-management-for-linux-users).
 
-```bash
-# Docker Repository zur APT Quellen-Liste hinzufügen
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+### Vorteile der Anmeldung
 
-# Paketliste aktualisieren
-sudo apt update -y
-```
+- Zugriff auf private Repositories
+- Höhere Pull-Rate Limits
+- Zugriff auf Docker Hub Features
+- Synchronisation von Einstellungen
 
-### Schritt 5: Docker Desktop installieren
-
-```bash
-# Zum Downloads-Verzeichnis wechseln
-cd Downloads
-
-# System aktualisieren
-sudo apt update
-
-# Docker Desktop installieren (muss vorher heruntergeladen worden sein)
-sudo apt install ./docker-desktop-amd64.deb
-```
-
-## Verifizierung
-
-Nach der Installation können Sie Docker mit folgendem Befehl testen:
-
-```bash
-# Docker Version prüfen
-docker --version
-
-# Docker Compose Version prüfen
-docker compose version
-
-# Test-Container ausführen
-docker run hello-world
-```
-
-## Häufige Probleme
-
-### Fehlermeldungen beim Entfernen
-
-Wenn beim Entfernen alter Versionen Fehlermeldungen auftreten, ist das normal wenn Docker noch nicht installiert war. Diese können ignoriert werden.
-
-### Berechtigungsprobleme
-
-Falls Sie Docker ohne `sudo` verwenden möchten:
-
-```bash
-# Benutzer zur docker Gruppe hinzufügen
-sudo usermod -aG docker $USER
-
-# Neu anmelden oder:
-newgrp docker
-```
-
-## Nächste Schritte
-
-Nach der erfolgreichen Installation können Sie:
-- Docker Container erstellen
-- Docker Compose verwenden
-- Services konfigurieren
-
-Siehe [Services Dokumentation](./SERVICES.md) für weitere Informationen.
