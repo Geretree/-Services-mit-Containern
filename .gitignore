@@ -1,0 +1,32 @@
+# Docker
+*.log
+docker-compose.override.yml
+.env
+.env.local
+
+# Volumes und Daten
+/data
+/volumes
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+*.bak
+*.backup
+*.old
+
+# Temporäre Dateien
+*.tmp
+temp/
+tmp/
