@@ -332,7 +332,8 @@ docker run --name frontend -d -p 3000:3000 -v /host/data:/app/data todo-app:v1
 
 Eine erweiterte To-Do Listen Anwendung mit Redis-Backend in Master-Slave Architektur für persistente Datenspeicherung und höhere Verfügbarkeit.
 
-![To-Do App v2 Interface](image2)
+<img width="2089" height="465" alt="image" src="https://github.com/user-attachments/assets/287e8a41-31f3-49ee-8f4e-13c27a399204" />
+
 
 #### Architektur-Übersicht
 
@@ -605,7 +606,8 @@ ONLYOFFICE ist eine vollwertige Office-Suite für kollaboratives Arbeiten mit Do
 
 **Offizielle Dokumentation:** [ONLYOFFICE Docker](https://github.com/ONLYOFFICE/Docker-DocumentServer)
 
-![ONLYOFFICE Interface](image1)
+<img width="2115" height="1247" alt="Screenshot 2026-02-06 085105" src="https://github.com/user-attachments/assets/e2c456ae-921d-4aa1-9cf4-21001ce47258" />
+
 
 #### Features
 
