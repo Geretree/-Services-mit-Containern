@@ -2,7 +2,7 @@
 
 Dieses Repository dokumentiert die Einrichtung und Verwaltung von Services mit Docker-Containern.
 
-## 📋 Inhaltsverzeichnis
+## Inhaltsverzeichnis
 
 - [Über das Projekt](#über-das-projekt)
 - [Voraussetzungen](#voraussetzungen)
@@ -11,17 +11,17 @@ Dieses Repository dokumentiert die Einrichtung und Verwaltung von Services mit D
 - [Verwendung](#verwendung)
 - [Dokumentation](#dokumentation)
 
-## 🎯 Über das Projekt
+## Über das Projekt
 
 Dieses Projekt dient zur Verwaltung und Dokumentation von containerisierten Services mit Docker.
 
-## 📦 Voraussetzungen
+## Voraussetzungen
 
 - Ubuntu/Debian-basiertes System
 - Sudo-Rechte
 - Internetverbindung
 
-## 🚀 Installation
+## Installation
 
 ### Docker Installation
 
@@ -70,29 +70,20 @@ sudo apt install ./docker-desktop-amd64.deb
 
 **Hinweis:** Es können Fehlermeldungen auftreten, wenn noch kein Docker installiert war. Diese können ignoriert werden.
 
-## 🐳 Services
+## Services
 
 Hier werden zukünftig die containerisierten Services dokumentiert.
 
 _Noch keine Services konfiguriert._
 
-## 💡 Verwendung
+## Verwendung
 
 Detaillierte Anleitungen zur Verwendung der Services folgen nach der Konfiguration.
 
-## 📚 Dokumentation
+## Dokumentation
 
 Weitere Dokumentation finden Sie im [`docs/`](./docs/) Verzeichnis:
 
 - [Installation Details](./docs/INSTALLATION.md)
 - [Services Übersicht](./docs/SERVICES.md)
 - [Changelog](./docs/CHANGELOG.md)
-
-## 🔄 Automatische Dokumentation
-
-Dieses Repository nutzt GitHub Actions, um die Dokumentation automatisch bei jedem Commit zu aktualisieren.
-
----
-
-**Erstellt:** 2026-01-30 08:21:40  
-**Letztes Update:** Automatisch aktualisiert durch GitHub Actions
