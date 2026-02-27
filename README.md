@@ -1829,6 +1829,37 @@ Microservices sind eine Architektur, bei der eine Anwendung aus mehreren kleinen
 | **kind**                 | [kind](https://kind.sigs.k8s.io/) (Kubernetes IN Docker) ermöglicht das Ausführen von Kubernetes Clustern als Docker Container, ideal für Tests und CI/CD Workflows. |
 | **k3s**                  | [k3s](https://k3s.io/) ist eine ultraleichte Kubernetes-Distribution, speziell entwickelt für ressourcenschwache Umgebungen wie Edge und IoT. |
 
+### Kubernetes & kubectl installieren
+
+```bash
+# Kubectl mit Snap installieren (unter Ubuntu/Debian)
+sudo snap install kubectl --classic
+
+# Installation prüfen (Versionsinfo anzeigen)
+kubectl version --client
+
+# Verfügbare Kubernetes-Kontexte anzeigen
+kubectl config get-contexts
+
+# Korrekten Kontext, z. B. für Docker Desktop, auswählen
+kubectl config use-context docker-desktop
+```
+
+**Hinweis:**  
+Wenn der Befehl `sudo snap install kubectl --classic` nicht funktioniert, überprüfe, ob Snap installiert ist und du den Parameter `--classic` ohne Leerzeichen schreibst (nicht `-- classic`).
+
+*Beispiel für die Kontextausgabe:*
+```text
+CURRENT   NAME             CLUSTER          AUTHINFO         NAMESPACE
+*         docker-desktop   docker-desktop   docker-desktop   
+```
+
+*Beispiel für das Wechseln des Kontexts:*
+```text
+Switched to context "docker-desktop".
+```
+
+<img width="1423" height="904" alt="image" src="https://github.com/user-attachments/assets/fa1654d1-c6df-437d-af5d-ee3a91ca749e" />
 
 ## Dokumentation
 
