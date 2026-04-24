@@ -19,6 +19,15 @@ Dieses Repository dokumentiert die Einrichtung und Verwaltung von Services mit D
   - [ONLYOFFICE Document Server](#onlyoffice-document-server)
 - [Docker Befehlsreferenz](#docker-befehlsreferenz)
 - [Verwendung](#verwendung)
+- [Kurze Beschreibung was Kubernetes ist](#kurze-beschreibung-was-kubernetes-ist)
+- [Kurze Beschreibung was Microservices sind](#kurze-beschreibung-was-microservices-sind)
+- [Vergleich lightweight Kubernetes Anwendungen](#vergleich-lightweight-kubernetes-anwendungen)
+- [Raft-Konsens-Algorithmus](#raft-konsens-algorithmus)
+- [App in Kubernetes](#app-in-kubernetes)
+- [Self Healing, Scale Down, Scale Up](#self-healing-scale-down-scale-up)
+- [Blue-Green Deployment](#blue-green-deployment)
+- [Cluster IP und Node IP](#cluster-ip-und-node-ip)
+- [LoadBalancer](#loadbalancer)
 - [Dokumentation](#dokumentation)
 
 ## Über das Projekt
@@ -925,6 +934,15 @@ Dieses Repository dokumentiert die Einrichtung und Verwaltung von Services mit D
   - [ONLYOFFICE Document Server](#onlyoffice-document-server)
 - [Docker Befehlsreferenz](#docker-befehlsreferenz)
 - [Verwendung](#verwendung)
+- [Kurze Beschreibung was Kubernetes ist](#kurze-beschreibung-was-kubernetes-ist)
+- [Kurze Beschreibung was Microservices sind](#kurze-beschreibung-was-microservices-sind)
+- [Vergleich lightweight Kubernetes Anwendungen](#vergleich-lightweight-kubernetes-anwendungen)
+- [Raft-Konsens-Algorithmus](#raft-konsens-algorithmus)
+- [App in Kubernetes](#app-in-kubernetes)
+- [Self Healing, Scale Down, Scale Up](#self-healing-scale-down-scale-up)
+- [Blue-Green Deployment](#blue-green-deployment)
+- [Cluster IP und Node IP](#cluster-ip-und-node-ip)
+- [LoadBalancer](#loadbalancer)
 - [Dokumentation](#dokumentation)
 
 ## Über das Projekt
@@ -1860,6 +1878,238 @@ Switched to context "docker-desktop".
 ```
 
 <img width="1423" height="904" alt="image" src="https://github.com/user-attachments/assets/fa1654d1-c6df-437d-af5d-ee3a91ca749e" />
+
+## Raft-Konsens-Algorithmus
+
+Der **Raft-Algorithmus** ist ein Konsens-Algorithmus, der in verteilten Systemen verwendet wird, um sicherzustellen, dass alle Knoten eines Clusters über denselben Zustand (State) einig sind – auch wenn einzelne Knoten ausfallen oder Nachrichten verloren gehen.
+
+### Funktionsweise
+
+Raft teilt das Cluster in drei Rollen auf:
+- **Leader**: Nimmt alle Schreibanfragen entgegen und repliziert Änderungen an die Follower.
+- **Follower**: Empfangen Log-Einträge vom Leader und bestätigen diese.
+- **Candidate**: Ein Follower, der eine neue Leader-Wahl gestartet hat.
+
+Der Ablauf ist vereinfacht:
+1. Ein Leader wird per Wahl bestimmt – der erste Knoten, der eine Mehrheit der Stimmen erhält, wird Leader.
+2. Alle Schreiboperationen gehen über den Leader. Er schreibt den Eintrag in sein Log und schickt ihn an alle Follower.
+3. Sobald eine Mehrheit der Knoten den Eintrag bestätigt hat (Quorum), gilt der Eintrag als committed.
+4. Fällt der Leader aus, starten die Follower eine neue Wahl.
+
+### Warum immer eine ungerade Anzahl Server?
+
+Ein Raft-Cluster benötigt für eine Entscheidung immer eine **absolute Mehrheit (Quorum)**, also mehr als die Hälfte der Knoten. Die Anzahl der tolerierten Ausfälle berechnet sich als:
+
+> Tolerierte Ausfälle = ⌊ n / 2 ⌋
+
+| Knotenzahl | Quorum | Tolerierte Ausfälle |
+|:----------:|:------:|:-------------------:|
+| 1          | 1      | 0                   |
+| 2          | 2      | 0                   |
+| **3**      | **2**  | **1**               |
+| 4          | 3      | 1                   |
+| **5**      | **3**  | **2**               |
+| 6          | 4      | 2                   |
+
+Wie die Tabelle zeigt, bringt der Wechsel von 3 auf 4 Knoten **keine zusätzliche Fehlertoleranz** – bei beiden Varianten kann genau 1 Knoten ausfallen. Ein Cluster mit gerader Knotenanzahl verbraucht also eine zusätzliche Maschine, ohne mehr Ausfallsicherheit zu bieten. Deshalb wählt man immer **3, 5, 7, …** Knoten.
+
+Ein weiterer Grund: Bei gerader Knotenanzahl kann ein **Split-Brain**-Szenario entstehen, bei dem sich das Cluster bei einer Netzwerktrennung in zwei gleich große Hälften aufteilt, die beide kein Quorum erreichen und so komplett blockiert werden.
+
+---
+
+## App in Kubernetes
+
+Die To-Do App wird in Kubernetes über mehrere Objekte betrieben:
+
+1. **Deployment** – Beschreibt, wie viele Replicas des App-Containers laufen sollen und welches Image verwendet wird. Kubernetes stellt sicher, dass immer die gewünschte Anzahl an Pods läuft.
+2. **Pod** – Die kleinste deploybare Einheit in Kubernetes. Jeder Pod enthält einen oder mehrere Container (z. B. Frontend + Redis).
+3. **Service** – Stellt eine stabile Netzwerkadresse bereit, über die die Pods erreichbar sind, unabhängig davon, auf welchem Node sie gerade laufen.
+4. **ConfigMap / Secret** – Ermöglichen die Übergabe von Konfigurationswerten und Zugangsdaten an die Container.
+
+```yaml
+# Beispiel: Deployment der To-Do App
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: todo-app
+  template:
+    metadata:
+      labels:
+        app: todo-app
+    spec:
+      containers:
+        - name: frontend
+          image: todo-app:v1
+          ports:
+            - containerPort: 3000
+```
+
+```bash
+# Deployment anwenden
+kubectl apply -f deployment.yaml
+
+# Pods anzeigen
+kubectl get pods
+
+# Service anzeigen
+kubectl get services
+```
+
+---
+
+## Self Healing, Scale Down, Scale Up
+
+### Self Healing
+
+Kubernetes überwacht kontinuierlich den Zustand aller Pods. Stürzt ein Pod ab oder meldet er einen fehlerhaften Health-Check, startet Kubernetes ihn **automatisch neu**. Wird ein ganzer Node ausgeschaltet, verschiebt Kubernetes die betroffenen Pods auf andere verfügbare Nodes. Manuelles Eingreifen ist in den meisten Fällen nicht nötig.
+
+```bash
+# Pod-Status beobachten (Neustart wird sichtbar in der RESTARTS-Spalte)
+kubectl get pods -w
+```
+
+### Scale Up
+
+Durch Erhöhen der Replica-Anzahl werden sofort neue Pods gestartet, um höhere Last zu bewältigen.
+
+```bash
+# Auf 5 Replicas hochskalieren
+kubectl scale deployment todo-app --replicas=5
+```
+
+### Scale Down
+
+Durch Verringern der Replica-Anzahl werden überschüssige Pods geordnet beendet.
+
+```bash
+# Auf 2 Replicas herunterskalieren
+kubectl scale deployment todo-app --replicas=2
+```
+
+Kubernetes unterstützt auch **automatisches Skalieren** über den Horizontal Pod Autoscaler (HPA), der die Replica-Anzahl anhand von CPU- oder Arbeitsspeicherauslastung selbstständig anpasst.
+
+---
+
+## Blue-Green Deployment
+
+Beim **Blue-Green Deployment** laufen zwei identische Produktionsumgebungen parallel:
+
+- **Blue** – die aktuell aktive Version der Anwendung.
+- **Green** – die neue Version, die deployt und getestet wird, während Blue noch Live-Traffic bedient.
+
+Sobald Green vollständig getestet und bereit ist, wird der Traffic **auf einen Schlag** von Blue auf Green umgeleitet – typischerweise durch Umbiegen des Kubernetes-Service-Selectors oder des LoadBalancer-Eintrags. Bei Problemen kann sofort auf Blue zurückgeswitcht werden (Rollback in Sekunden).
+
+```yaml
+# Service zeigt zunächst auf Blue
+selector:
+  app: todo-app
+  version: blue
+
+# Nach erfolgreichem Test: Selector auf Green ändern
+selector:
+  app: todo-app
+  version: green
+```
+
+**Vorteile:**
+- Kein Downtime während des Deployments
+- Sofortiger Rollback möglich
+- Neue Version kann unter realen Bedingungen getestet werden, bevor sie alle Nutzer erreicht
+
+---
+
+## Cluster IP und Node IP
+
+### Cluster IP
+
+Ein **ClusterIP**-Service erhält eine clusterinterne IP-Adresse, die nur innerhalb des Kubernetes-Clusters erreichbar ist. Er wird verwendet, um Pods untereinander kommunizieren zu lassen (z. B. Frontend → Redis).
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  type: ClusterIP        # Standard-Typ, auch ohne Angabe aktiv
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+```
+
+Von außerhalb des Clusters ist ein ClusterIP-Service **nicht direkt erreichbar**.
+
+### Node IP / NodePort
+
+Ein **NodePort**-Service öffnet auf jedem Node des Clusters einen bestimmten Port (Standard: 30000–32767). Anfragen an `<NodeIP>:<NodePort>` werden an den zugehörigen Pod weitergeleitet.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-service
+spec:
+  type: NodePort
+  selector:
+    app: todo-app
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30080    # Frei wählbar im Bereich 30000–32767
+```
+
+```bash
+# Node-IP ermitteln
+kubectl get nodes -o wide
+
+# Zugriff dann über: http://<Node-IP>:30080
+```
+
+---
+
+## LoadBalancer
+
+Ein **LoadBalancer**-Service ist die einfachste Möglichkeit, eine Anwendung in einer Cloud-Umgebung (AWS, GCP, Azure, …) von außen erreichbar zu machen. Kubernetes fordert beim Cloud-Provider automatisch einen externen Load Balancer an, der eine öffentliche IP-Adresse erhält und den Traffic auf die Pods verteilt.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-loadbalancer
+spec:
+  type: LoadBalancer
+  selector:
+    app: todo-app
+  ports:
+    - protocol: TCP
+      port: 80           # Externer Port
+      targetPort: 3000   # Container-Port
+```
+
+```bash
+# Externe IP des LoadBalancers abfragen
+kubectl get service todo-loadbalancer
+
+# Ausgabe (sobald die IP zugewiesen ist):
+# NAME                 TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
+# todo-loadbalancer    LoadBalancer   10.96.0.1      203.0.113.5     80:31234/TCP   2m
+```
+
+**Vergleich der Service-Typen:**
+
+| Typ           | Erreichbarkeit         | Typischer Einsatz                            |
+|---------------|------------------------|----------------------------------------------|
+| ClusterIP     | Nur intern im Cluster  | Kommunikation zwischen Pods/Services         |
+| NodePort      | Über Node-IP + Port    | Lokale Entwicklung, einfache externe Zugriffe |
+| LoadBalancer  | Öffentliche IP         | Produktions-Deployments in der Cloud          |
+
+---
 
 ## Dokumentation
 
